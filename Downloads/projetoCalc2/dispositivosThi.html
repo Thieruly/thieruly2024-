@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispositivos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Estilo dos cards de dispositivos */
+    .card {
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+      margin-bottom: 20px;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card-body {
+      background-color: #fdfdfd;
+      border-radius: 10px;
+    }
+
+    .card-title {
+      color: #333;
+      font-size: 1.4rem;
+    }
+
+    .card-text {
+      font-size: 1.1rem;
+      color: #555;
+    }
+
+    .icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #007bff;
+    }
+
+    /* Estilo da seção de consumo e resultados */
+    .consumo-container,
+    .resultado-container {
+      margin-top: 40px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .consumo-item,
+    .resultado-item {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+
+    .consumo-item .fa-bolt,
+    .resultado-item .fa-bolt {
+      color: #f39c12;
+      margin-right: 8px;
+    }
+
+    .btn-outline-success {
+      margin-top: 20px;
+    }
+
+    .btn-calcular {
+      margin-top: 20px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    /* Estilo dos inputs */
+    .card-text input {
+      width: 80px;
+      text-align: center;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      padding: 5px;
+    }
+
+    /* Estilo do seletor de bandeira tarifária */
+    .bandeira-container {
+      margin-top: 20px;
+    }
+
+    .form-select {
+      width: auto;
+      margin: 0 auto;
+      display: block;
+      font-size: 1.1rem;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .form-select option {
+      font-size: 1rem;
+    }
+
+    .form-select option[data-tarifa="verde"] {
+      color: #28a745; /* Verde */
+    }
+
+    .form-select option[data-tarifa="amarela"] {
+      color: #ffc107; /* Amarelo */
+    }
+
+    .form-select option[data-tarifa="vermelha1"] {
+      color: #dc3545; /* Vermelho 1 */
+    }
+
+    .form-select option[data-tarifa="vermelha2"] {
+      color: #c82333; /* Vermelho 2 */
+    }
+  </style>
+</head>
+<body>
+  <div class="container my-5">
+    <h1 class="text-center mb-4">Dispositivos da Dependência</h1>
+    <div class="row" id="dispositivos">
+      <!-- Aqui os dispositivos serão inseridos dinamicamente -->
+    </div>
+
+    <div class="bandeira-container text-center">
+      <label for="bandeira" class="form-label">Escolha a Bandeira Tarifária:</label>
+      <select id="bandeira" class="form-select">
+        <option value="0.70" data-tarifa="verde">Verde - R$ 0,70/kWh</option>
+        <option value="0.90" data-tarifa="amarela">Amarela - R$ 0,90/kWh</option>
+        <option value="1.20" data-tarifa="vermelha1">Vermelha 1 - R$ 1,20/kWh</option>
+        <option value="1.50" data-tarifa="vermelha2">Vermelha 2 - R$ 1,50/kWh</option>
+      </select>
+    </div>
+
+    <div class="text-center btn-calcular">
+      <button class="btn btn-primary" onclick="calcularConsumoTotal()">Calcular Consumo Total</button>
+    </div>
+
+    <div class="resultado-container text-center" id="resultado">
+      <h3>Consumo Total</h3>
+      <div class="resultado-item">
+        Consumo Diário: <span id="consumoDiario">0 kWh</span> - Valor: <span id="valorDiario">R$ 0,00</span>
+      </div>
+      <div class="resultado-item">
+        Consumo Mensal: <span id="consumoMensal">0 kWh</span> - Valor: <span id="valorMensal">R$ 0,00</span>
+      </div>
+      <div class="resultado-item">
+        Consumo Anual: <span id="consumoAnual">0 kWh</span> - Valor: <span id="valorAnual">R$ 0,00</span>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <a href="calculadora.html" class="btn btn-outline-success">Ir para a Calculadora de Consumo</a>
+    </div>
+  </div>
+
+  <script>
+    let tarifa = 0.70; // Tarifa padrão em R$/kWh (ajuste conforme necessário)
+    let dispositivosData = []; // Array para armazenar os dados dos dispositivos
+
+    // Função para extrair o id da dependência da URL
+    const getDependenciaIdFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('dependenciaId');
+    };
+
+    // Função para gerar os ícones dos dispositivos com base no nome
+    const getDispositivoIcon = (nome) => {
+      if (nome.toLowerCase().includes('geladeira')) {
+        return '<i class="fas fa-snowflake icon"></i>'; // Ícone de geladeira
+      } else if (nome.toLowerCase().includes('tv')) {
+        return '<i class="fas fa-tv icon"></i>'; // Ícone de TV
+      } else if (nome.toLowerCase().includes('ar condicionado')) {
+        return '<i class="fas fa-snowflake icon"></i>'; // Ícone de ar-condicionado
+      } else if (nome.toLowerCase().includes('ventilador')) {
+        return '<i class="fas fa-fan icon"></i>'; // Ícone de ventilador
+      } else if (nome.toLowerCase().includes('lâmpada') || nome.toLowerCase().includes('lampada')) {
+        return '<i class="fas fa-lightbulb icon"></i>'; // Ícone de lâmpada
+      } else if (nome.toLowerCase().includes('computador')) {
+        return '<i class="fas fa-laptop icon"></i>'; // Ícone de computador
+      } else if (nome.toLowerCase().includes('máquina de lavar')) {
+        return '<i class="fas fa-shirt icon"></i>'; // Ícone de máquina de lavar
+      } else if (nome.toLowerCase().includes('teclado musical')) {
+        return '<i class="fas fa-keyboard"></i>'; // Ícone de teclado musical
+      } else if (nome.toLowerCase().includes('panela elétrica')) {
+        return '<i class="fas fa-pot icon"></i>'; // Ícone de panela elétrica
+      } else if (nome.toLowerCase().includes('bebedouro')) {
+        return '<i class="fas fa-tint icon"></i>'; // Ícone de bebedouro (gota de água)
+      } else if (nome.toLowerCase().includes('chuveiro elétrico')) {
+        return '<i class="fas fa-shower icon"></i>'; // Ícone de chuveiro elétrico
+     
+      } else {
+        return '<i class="fas fa-plug icon"></i>'; // Ícone genérico para outros dispositivos
+      }
+    };
+
+    // Função para gerar os cards dos dispositivos
+    const createDispositivoCard = (id, nome, potencia, tempoDiario) => {
+      const icon = getDispositivoIcon(nome);
+      return `
+        <div class="col-lg-6 col-md-12 mb-4">
+          <div class="card">
+            <div class="card-body text-center">
+              ${icon}
+              <h5 class="card-title">${nome}</h5>
+              <p class="card-text">Potência (W): <input type="number" id="potencia-${id}" value="${potencia}" /></p>
+              <p class="card-text">Tempo de uso diário (h): <input type="number" id="tempo-${id}" value="${tempoDiario}" /></p>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    // Função para calcular o consumo diário, mensal e anual
+    const calcularConsumo = (potencia, tempoDiario) => {
+      const consumoDiario = (potencia * tempoDiario) / 1000; // em kWh
+      const consumoMensal = consumoDiario * 30; // consumo diário vezes 30 dias
+      const consumoAnual = consumoDiario * 365; // consumo diário vezes 365 dias
+      return { consumoDiario, consumoMensal, consumoAnual };
+    };
+
+    // Função para calcular o valor estimado em reais
+    const calcularValor = (consumo) => {
+      return consumo * tarifa; // em R$
+    };
+
+    // Função para atualizar os valores de consumo e valor em R$ na página
+    const atualizarConsumo = (totalDiario, totalMensal, totalAnual) => {
+      const valorDiario = calcularValor(totalDiario);
+      const valorMensal = calcularValor(totalMensal);
+      const valorAnual = calcularValor(totalAnual);
+
+      document.getElementById('consumoDiario').innerText = `${totalDiario.toFixed(2)} kWh`;
+      document.getElementById('valorDiario').innerText = `R$ ${valorDiario.toFixed(2)}`;
+
+      document.getElementById('consumoMensal').innerText = `${totalMensal.toFixed(2)} kWh`;
+      document.getElementById('valorMensal').innerText = `R$ ${valorMensal.toFixed(2)}`;
+
+      document.getElementById('consumoAnual').innerText = `${totalAnual.toFixed(2)} kWh`;
+      document.getElementById('valorAnual').innerText = `R$ ${valorAnual.toFixed(2)}`;
+    };
+
+    // Função para calcular o consumo total
+    const calcularConsumoTotal = () => {
+      const bandaSelect = document.getElementById('bandeira');
+      tarifa = parseFloat(bandaSelect.value); // Atualiza a tarifa com base na bandeira selecionada
+      
+      let totalConsumoDiario = 0;
+      let totalConsumoMensal = 0;
+      let totalConsumoAnual = 0;
+
+      dispositivosData.forEach(dispositivo => {
+        const potencia = parseFloat(document.getElementById(`potencia-${dispositivo.id}`).value) || 0; // Define potência padrão como 0 se não houver valor
+        const tempoDiario = parseFloat(document.getElementById(`tempo-${dispositivo.id}`).value) || 0; // Define tempo padrão como 0 se não houver valor
+
+        const { consumoDiario, consumoMensal, consumoAnual } = calcularConsumo(potencia, tempoDiario);
+
+        totalConsumoDiario += consumoDiario;
+        totalConsumoMensal += consumoMensal;
+        totalConsumoAnual += consumoAnual;
+      });
+
+      // Atualizar o consumo total e os valores na página
+      atualizarConsumo(totalConsumoDiario, totalConsumoMensal, totalConsumoAnual);
+    };
+
+    // Função para buscar os dispositivos da dependência
+    const fetchDispositivos = async (dependenciaId) => {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/dispositivos/dependencias/${dependenciaId}`);
+        const data = await response.json();
+
+        const container = document.getElementById('dispositivos');
+        let dispositivosHtml = ''; // Variável para acumular o HTML dos dispositivos
+
+        if (data.dispositivos.length > 0) {
+          dispositivosData = data.dispositivos; // Armazena os dados dos dispositivos
+          data.dispositivos.forEach(dispositivo => {
+            const { id, nome, potencia, tempo_diario: tempoDiario } = dispositivo;
+            dispositivosHtml += createDispositivoCard(id, nome, potencia, tempoDiario);
+          });
+
+          // Adicionar todo o HTML de uma vez ao container
+          container.innerHTML = dispositivosHtml;
+        } else {
+          container.innerHTML = '<p class="text-center">Nenhum dispositivo encontrado.</p>';
+        }
+      } catch (error) {
+        console.error('Erro ao buscar os dispositivos:', error);
+      }
+    };
+
+    // Chamar a função ao carregar a página com o id da dependência
+    const dependenciaId = getDependenciaIdFromUrl();
+    if (dependenciaId) {
+      fetchDispositivos(dependenciaId);
+    } else {
+      console.error('ID da dependência não encontrado na URL');
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+</body>
+</html>
